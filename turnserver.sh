@@ -15,65 +15,74 @@ then
     PORT=3478
 fi
 
-if [ ! -e /tmp/turnserver.configured ]
+
+if [ -z $NO_NEW_CONFIG ]
 then
-    if [ -z $SKIP_AUTO_IP ]
+    if [ ! -e /tmp/turnserver.configured ]
     then
-        echo external-ip=$EXTERNAL_IP > /etc/turnserver.conf
-    fi
-    echo listening-port=$PORT >> /etc/turnserver.conf
+        if [ -z $SKIP_AUTO_IP ]
+        then
+            echo external-ip=$EXTERNAL_IP > /etc/turnserver.conf
+        fi
+        echo listening-port=$PORT >> /etc/turnserver.conf
 
-    if [ ! -z $LISTEN_ON_PUBLIC_IP ]
+        if [ ! -z $LISTEN_ON_PUBLIC_IP ]
+        then
+            echo listening-ip=$EXTERNAL_IP >> /etc/turnserver.conf
+        fi
+
+        touch /tmp/turnserver.configured
+    fi
+
+
+    if [ ! -z $ENABLE_SSL ]
     then
-        echo listening-ip=$EXTERNAL_IP >> /etc/turnserver.conf
+        if [ ! -z $SSL_CRT_FILE ]
+        then
+            echo cert=$SSL_CRT_FILE >> /etc/turnserver.conf
+        else
+            echo cert=/etc/cert/server.crt >> /etc/turnserver.conf
+        fi
+        
+        if [ ! -z $SSL_KEY_FILE ]
+        then
+            echo pkey=$SSL_KEY_FILE >> /etc/turnserver.conf
+        else
+            echo pkey=/etc/cert/server.key >> /etc/turnserver.conf
+        fi
     fi
 
-    touch /tmp/turnserver.configured
-fi
-
-
-if [ ! -z $ENABLE_SSL ]
-then
-    if [ ! -z $SSL_CRT_FILE ]
+    if [ ! -z $ENABLE_SQLITE ]
     then
-        echo cert=$SSL_CRT_FILE >> /etc/turnserver.conf
-    else
-        echo cert=/etc/cert/server.crt >> /etc/turnserver.conf
+        echo userdb=/var/lib/turn/turndb >> /etc/turnserver.conf
     fi
-    
-    if [ ! -z $SSL_KEY_FILE ]
+
+    if [ ! -z $ENABLE_MOBILITY ]
     then
-        echo pkey=$SSL_KEY_FILE >> /etc/turnserver.conf
-    else
-        echo pkey=/etc/cert/server.key >> /etc/turnserver.conf
+        echo mobility >> /etc/turnserver.conf
     fi
-fi
 
-if [ ! -z $ENABLE_SQLITE ]
-then
-    echo userdb=/var/lib/turn/turndb >> /etc/turnserver.conf
-fi
+    if [ ! -z $USERNAME ] && [ ! -z $PASSWORD ]
+    then
+        echo lt-cred-mech >> /etc/turnserver.conf
+        echo user=$USERNAME:$PASSWORD >> /etc/turnserver.conf
+    fi
 
-if [ ! -z $ENABLE_MOBILITY ]
-then
-    echo mobility >> /etc/turnserver.conf
-fi
+    if [ ! -z $REALM ]
+    then
+        echo realm=$REALM >> /etc/turnserver.conf
+    fi
 
-if [ ! -z $USERNAME ] && [ ! -z $PASSWORD ]
-then
-    echo lt-cred-mech >> /etc/turnserver.conf
-    echo user=$USERNAME:$PASSWORD >> /etc/turnserver.conf
-fi
+    if [ ! -z $RELAY_IP ]
+    then
+        echo relay-ip=$RELAY_IP >> /etc/turnserver.conf
+    fi
 
-if [ ! -z $REALM ]
-then
-    echo realm=$REALM >> /etc/turnserver.conf
-fi
-
-if [ ! -z $STATIC_AUTH_SECRET ]
-then
-    echo lt-cred-mech >> /etc/turnserver.conf
-    echo static-auth-secret=$STATIC_AUTH_SECRET >> /etc/turnserver.conf
+    if [ ! -z $STATIC_AUTH_SECRET ]
+    then
+        echo lt-cred-mech >> /etc/turnserver.conf
+        echo static-auth-secret=$STATIC_AUTH_SECRET >> /etc/turnserver.conf
+    fi
 fi
 
 exec /usr/bin/turnserver -c /etc/turnserver.conf --no-cli -l stdout
