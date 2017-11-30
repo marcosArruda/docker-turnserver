@@ -11,9 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends coturn=4.5.0.3-
 
 ENV COTURN_VER 4.5.0.3
 
-RUN groupadd turnserver
-RUN useradd -g turnserver turnserver
-
 RUN mkdir /etc/service/turnutils_peer
 COPY turnutils_peer.sh /etc/service/turnutils_peer/run
 
